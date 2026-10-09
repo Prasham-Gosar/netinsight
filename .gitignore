@@ -1,0 +1,15 @@
+# Compiled Python files
+__pycache__/
+*.pyc
+
+# SQLite databases (don't commit captured traffic - teammates generate their own)
+*.db
+
+# Virtual environment, if a teammate creates one
+venv/
+env/
+.venv/
+
+# OS-specific junk
+.DS_Store
+Thumbs.db
