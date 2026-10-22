@@ -1,0 +1,1 @@
+{"highest_loss_minute":{"packet_loss_pct":0.0,"time":"2026-10-15T05:25"},"slowest_minute":{"latency_ms":28.7,"time":"2026-10-15T05:25"},"top_application":{"bytes":11848567,"name":"YouTube","packets":11975,"percent":43.3},"top_device":{"bytes":16479194,"name":"This computer","packets":19887,"percent":58.6},"traffic_today":{"bytes_in":26542946,"bytes_out":1481147,"total":28143407}}
