@@ -9,6 +9,7 @@ __pycache__/
 venv/
 env/
 .venv/
+.scapy-cache/
 
 # OS-specific junk
 .DS_Store

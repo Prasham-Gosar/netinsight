@@ -86,10 +86,14 @@ class Database:
     def __init__(self, db_path="netinsight.db"):
         self.db_path = db_path
         self._lock = Lock()
-        self._conn = sqlite3.connect(db_path, check_same_thread=False)
+        # Another NetInsight process may briefly hold the database while it
+        # flushes. Wait for that transaction instead of failing the worker
+        # thread immediately with "database is locked".
+        self._conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         try:
             self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA busy_timeout=30000")
         except sqlite3.DatabaseError:
             pass
         self._migrate_phase1()

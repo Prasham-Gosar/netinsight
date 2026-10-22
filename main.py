@@ -17,11 +17,16 @@ import sys
 import threading
 import time
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+# Scapy caches its service database under the user's profile. On some
+# Windows installations that location is not readable, so use a cache
+# inside the project before importing modules that load Scapy.
+os.environ.setdefault("XDG_CACHE_HOME", os.path.join(HERE, ".scapy-cache"))
+
 from core.engine import Engine
 from core.netutil import NetContext
 from db.database import Database
 
-HERE = os.path.dirname(os.path.abspath(__file__))
 DIST = os.path.join(HERE, "frontend", "dist")
 
 
