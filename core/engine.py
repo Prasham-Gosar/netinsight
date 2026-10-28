@@ -256,8 +256,14 @@ class Engine:
         dst = f"{rec['dst_ip']}:{rec['dst_port']}" if rec["dst_port"] else (rec["dst_ip"] or "-")
         return {
             "n": rec["n"], "time": datetime.fromtimestamp(rec["ts"]).strftime("%H:%M:%S"),
+            "timestamp": rec["timestamp"], "src_ip": rec["src_ip"], "dst_ip": rec["dst_ip"],
+            "src_mac": rec["src_mac"], "dst_mac": rec["dst_mac"],
             "src": src, "dst": dst, "protocol": rec["app_protocol"], "family": rec["family"],
-            "size": rec["packet_size"], "flags": rec["tcp_flags"], "ttl": rec["ttl"],
+            "transport": rec["protocol"], "src_port": rec["src_port"], "dst_port": rec["dst_port"],
+            "size": rec["packet_size"], "flags": rec["tcp_flags"], "tcp_flags": rec["tcp_flags"],
+            "ttl": rec["ttl"], "payload_len": rec["payload_len"], "seq": rec["seq"], "ack": rec["ack"],
+            "icmp_type": rec["icmp_type"], "arp_op": rec["arp_op"],
+            "dns": rec["dns"], "sni": rec["sni"], "http_host": rec["http_host"],
             "app": rec["app"], "domain": rec["domain"], "direction": rec["direction"],
             "confidence": rec["confidence"], "explanation": explain_packet(rec),
         }

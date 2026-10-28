@@ -309,6 +309,7 @@ class EndToEndTests(unittest.TestCase):
         self.assertGreaterEqual(dns[0]["ratio"], 3)
         self.assertTrue(any("metrics-sync.net" in line for line in dns[0]["context"]))
         self.assertIn("Potentially unusual", dns[0]["advice"])
+        self.assertIn("Flagged because", dns[0]["reason"])
 
     def test_database_history(self):
         self.engine.flush(self.T0 + 215)
@@ -331,6 +332,7 @@ class EndToEndTests(unittest.TestCase):
     def test_packet_feed_has_explanations(self):
         pk = self.dash["packets"]
         self.assertTrue(pk and all(p["explanation"] for p in pk))
+        self.assertTrue(all("src_ip" in p and "transport" in p and "timestamp" in p for p in pk))
         self.assertTrue(self.dash["insights"])
 
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
 import dashboard from './fixtures/dashboard.json'
@@ -50,6 +50,20 @@ describe('NetInsight dashboard', () => {
     expect(screen.getAllByText(dashboard.alerts[0].title).length).toBeGreaterThan(0)
     expect(screen.getAllByText(dashboard.alerts[0].message).length).toBeGreaterThan(0)
     expect(screen.getAllByText(dashboard.packets[0].explanation).length).toBeGreaterThan(0)
+  })
+
+  it('opens and closes the detailed packet inspector', async () => {
+    render(<App />)
+    await screen.findByText('Network Health')
+    fireEvent.click(screen.getByRole('button', { name: `Inspect packet ${dashboard.packets[0].n}` }))
+
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(screen.getByText('Link layer')).toBeTruthy()
+    expect(screen.getByText('Source IP')).toBeTruthy()
+    expect(screen.getAllByText(dashboard.packets[0].explanation).length).toBeGreaterThan(0)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('shows a friendly message when the backend is unreachable', async () => {

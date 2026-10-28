@@ -137,6 +137,8 @@ class AnomalyDetector:
             "message": (f"{m['subject']} {m['verb']} approximately {ratio_txt} higher than the recent baseline "
                         f"({fmt_rate(rate, m['unit'])} vs {fmt_rate(mu, m['unit'])})."),
             "advice": NOTE,
+            "reason": (f"Flagged because the latest {SHORT}-second rate was "
+                       f"{ratio_txt} the baseline and {z:.1f} standard deviations above normal."),
             "causes": m["causes"],
             "context": context,
             "ts": now,

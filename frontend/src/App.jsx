@@ -57,7 +57,7 @@ export default function App() {
               <ApplicationsCard apps={data.applications} />
             </div>
             <div className="span-4">
-              <DevicesCard devices={data.devices} />
+              <DevicesCard devices={data.devices} totals={data.totals} />
             </div>
 
             <div className="span-7">

@@ -12,6 +12,11 @@ function Alert({ a }) {
         </span>
       </div>
       <p>{a.message}</p>
+      {a.reason && (
+        <p className="alert-reason">
+          <b>Why this was flagged:</b> {a.reason}
+        </p>
+      )}
       {a.peak_ratio > a.ratio && (
         <p className="muted small">
           Peaked at ≈{a.peak_ratio}× baseline ({a.peak_rate} {a.unit}).
