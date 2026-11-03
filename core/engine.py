@@ -83,6 +83,7 @@ class Engine:
         self.capture = None       # CaptureEngine (live mode)
         self.simulator = None     # SimulatorRunner (simulation mode)
         self.db_ids = {}
+        self.session_id = self.db.create_session(interface_label, {"mode": mode}) if self.db else None
 
     # ------------------------------------------------------------------
     def now(self):
@@ -113,6 +114,7 @@ class Engine:
         self._last_ts = max(self._last_ts, ts)
         self.packets_total += 1
         rec["n"] = self.packets_total
+        rec["session_id"] = self.session_id
 
         direction = self.ctx.direction(src, dst)
         remote = self.ctx.remote_ip(src, dst, direction)
@@ -170,7 +172,7 @@ class Engine:
                 new, resolved = self.anomaly.check(now)
                 for a in new:
                     if self.db:
-                        a["db_id"] = self.db.insert_alert(a)
+                        a["db_id"] = self.db.insert_alert(a, self.session_id)
                 for a in resolved:
                     if self.db and a.get("db_id"):
                         self.db.resolve_alert(a["db_id"], now)
@@ -181,14 +183,14 @@ class Engine:
                 n["health_save"] = now + HEALTH_SAVE_EVERY
                 self._health_cache = self.health.compute(now)
                 if self.db and self._health_cache["score"] is not None:
-                    self.db.insert_health(now, self._health_cache)
+                    self.db.insert_health(now, self._health_cache, self.session_id)
             if now >= n["flush"]:
                 n["flush"] = now + FLUSH_EVERY
                 self.flush(now)
             if now >= n["prune"]:
                 n["prune"] = now + 600
                 if self.db:
-                    self.db.prune_packets()
+                    self.db.prune_packets(now=now)
 
     def flush(self, now=None):
         """Write everything accumulated since the last flush to SQLite."""
@@ -212,7 +214,7 @@ class Engine:
                 dev_rows.append(dict(d, bytes_in=d["bytes_in"] - pin, bytes_out=d["bytes_out"] - pout,
                                      packets=d["packets"] - ppk))
         self.db.insert_packets_batch(batch)
-        self.db.flush_usage(merged, apps, now)
+        self.db.flush_usage(merged, apps, now, self.session_id)
         self.db.upsert_devices(dev_rows)
 
     # ---- anomaly context ("anomaly analysis") -------------------------------
@@ -368,5 +370,6 @@ class Engine:
         if self.db:
             try:
                 self.flush()
+                self.db.complete_session(self.session_id, "completed")
             finally:
                 self.db.close()

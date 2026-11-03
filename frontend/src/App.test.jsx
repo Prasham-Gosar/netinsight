@@ -20,6 +20,7 @@ afterEach(() => {
 describe('NetInsight dashboard', () => {
   beforeEach(() => {
     mockFetch((url) => {
+      if (url.includes('/api/auth/session')) return ok({ user: { id: 1, email: 'tester@example.com' } })
       if (url.includes('/api/dashboard')) return ok(dashboard)
       if (url.includes('/api/history/timeline')) return ok(timeline)
       if (url.includes('/api/history/answers')) return ok(answers)

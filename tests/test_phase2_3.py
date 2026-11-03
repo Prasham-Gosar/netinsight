@@ -384,5 +384,60 @@ class Phase1CompatibilityTests(unittest.TestCase):
             db.close()
 
 
+class DatabaseFoundationTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db = Database(os.path.join(self.tmp.name, "foundation.db"), packet_retention_days=7)
+
+    def tearDown(self):
+        self.db.close()
+        self.tmp.cleanup()
+
+    def test_sessions_foreign_keys_and_event_evidence(self):
+        session_id = self.db.create_session("test0", {"mode": "test"})
+        self.assertEqual(self.db.session(session_id)["status"], "running")
+        alert = {
+            "ts": 1_800_000_100.0, "metric": "dns_q", "severity": "warning",
+            "title": "Unusual DNS activity", "message": "DNS is elevated.",
+            "rate": 4.0, "baseline": 1.0, "ratio": 4.0, "z": 4.2,
+            "causes": ["retry loop"], "context": ["example.test"], "advice": "Investigate",
+            "reason": "The current rate exceeded the baseline.",
+        }
+        alert_id = self.db.insert_alert(alert, session_id)
+        row = self.db._conn.execute(
+            "SELECT session_id, event_id, details FROM alerts WHERE id=?", (alert_id,)).fetchone()
+        self.assertEqual(row["session_id"], session_id)
+        self.assertIn("reason", row["details"])
+        event = self.db._conn.execute(
+            "SELECT session_id, evidence_json FROM network_events WHERE id=?", (row["event_id"],)).fetchone()
+        self.assertEqual(event["session_id"], session_id)
+        self.assertIn("ratio", event["evidence_json"])
+        self.db.resolve_alert(alert_id, alert["ts"] + 10)
+        self.assertIsNotNone(self.db._conn.execute(
+            "SELECT resolved_at FROM network_events WHERE id=?", (row["event_id"],)).fetchone()["resolved_at"])
+        self.db.complete_session(session_id)
+        self.assertEqual(self.db.session(session_id)["status"], "completed")
+
+    def test_packet_retention_does_not_remove_aggregates_or_events(self):
+        session_id = self.db.create_session("test0")
+        old = 1_700_000_000.0
+        record = {
+            "session_id": session_id, "timestamp": "2023-11-14T22:13:20+00:00",
+            "src_ip": "192.168.1.5", "dst_ip": "8.8.8.8", "src_mac": None, "dst_mac": None,
+            "protocol": "UDP", "app_protocol": "DNS", "src_port": 5000, "dst_port": 53,
+            "packet_size": 80, "ttl": 64, "tcp_flags": None, "app": "DNS", "domain": "example.test",
+            "direction": "out", "payload_len": 40, "seq": None, "ack": None, "icmp_type": None,
+            "arp_op": None, "dns": {"qname": "example.test"}, "sni": None, "http_host": None,
+            "app_method": "service", "confidence": "low", "family": "DNS",
+        }
+        self.db.insert_packets_batch([record])
+        self.db.flush_usage({(int(old // 60), "laptop", "DNS", "DNS", "out"): [1, 80]}, {}, old, session_id)
+        self.db.insert_event(session_id, old, "test", "info", "kept", {"x": 1}, "test")
+        removed = self.db.cleanup_expired_packets(now=old + 8 * 86400)
+        self.assertEqual(removed, 1)
+        self.assertEqual(self.db._conn.execute("SELECT COUNT(*) FROM traffic_stats").fetchone()[0], 1)
+        self.assertEqual(self.db._conn.execute("SELECT COUNT(*) FROM network_events").fetchone()[0], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

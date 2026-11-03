@@ -25,7 +25,7 @@ os.environ.setdefault("XDG_CACHE_HOME", os.path.join(HERE, ".scapy-cache"))
 
 from core.engine import Engine
 from core.netutil import NetContext
-from db.database import Database
+from db.database import Database, default_db_path
 
 DIST = os.path.join(HERE, "frontend", "dist")
 
@@ -38,7 +38,7 @@ def parse_args():
     p.add_argument("--all-interfaces", action="store_true", help="do not hide virtual/filter adapters in the list")
     p.add_argument("--host", default="127.0.0.1", help="web server address (default 127.0.0.1 = this PC only)")
     p.add_argument("--port", type=int, default=5000)
-    p.add_argument("--db", default="netinsight.db", help="SQLite file (default netinsight.db)")
+    p.add_argument("--db", default=None, help=f"SQLite file (default {default_db_path()})")
     p.add_argument("--no-db", action="store_true", help="do not write anything to disk")
     p.add_argument("--no-store-packets", action="store_true", help="store only aggregates, not per-packet rows")
     p.add_argument("--no-scan", action="store_true", help="do not run the active ARP sweep for device discovery")

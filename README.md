@@ -34,6 +34,10 @@ CAPTURE -> PARSE -> IDENTIFY -> QUEUE -> ANALYSE -> STORE -> DASHBOARD
 
 Useful options: `--console` (terminal view), `--no-scan` (skip the active ARP sweep), `--no-store-packets`
 (aggregates only), `--link-mbps 50` (your real link speed, for the utilisation metric), `--port 5001`, `--db file.db`.
+By default the SQLite database is created in the per-user NetInsight application-data directory
+(`%LOCALAPPDATA%\\NetInsight\\netinsight.db` on Windows, or `~/.local/share/NetInsight/netinsight.db` elsewhere).
+The schema is initialized automatically, sessions are recorded as running/completed, packet metadata is retained
+for 7 days by default (with a 200,000-row safety cap), and aggregate history/anomaly events are retained separately.
 
 The dashboard is already built in `frontend/dist`, so **Node.js is not needed to run the project**.
 
@@ -76,6 +80,10 @@ Live: `/api/dashboard` (everything), `/api/overview`, `/api/health`, `/api/bandw
 `/api/applications`, `/api/devices`, `/api/top-ips`, `/api/flows`, `/api/packets?limit=`, `/api/alerts`, `/api/insights`.
 History: `/api/history/summary?range=today|24h|7d|30d`, `/api/history/timeline?granularity=minutes|hours|days`,
 `/api/history/health?granularity=...`, `/api/history/answers`.
+Accounts and reports: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`,
+`GET /api/auth/session`, `POST /api/reports`, `GET /api/reports`, `GET /api/reports/{id}`,
+and `GET /api/reports/{id}/pdf`. The dashboard requires a signed-in session; generated reports
+are stored per user in SQLite and can be previewed from **My Generated Reports**.
 Simulation only: `POST /api/demo/{dns_burst|degradation|bandwidth_spike|scan}?duration=30`.
 
 ## Working on the dashboard (teammates)

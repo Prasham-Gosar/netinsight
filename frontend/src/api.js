@@ -4,8 +4,12 @@ export async function getJSON(url) {
   return res.json()
 }
 
-export async function postJSON(url) {
-  const res = await fetch(url, { method: 'POST' })
+export async function postJSON(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  })
   if (!res.ok) {
     let msg = res.statusText
     try {

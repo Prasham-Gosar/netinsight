@@ -19,3 +19,5 @@ Thumbs.db
 node_modules/
 *.db-wal
 *.db-shm
+*.sqlite
+*.sqlite3

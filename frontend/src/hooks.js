@@ -7,6 +7,11 @@ export function usePolling(url, intervalMs) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!url) {
+      setData(null)
+      setError(null)
+      return undefined
+    }
     let alive = true
     let timer
     const tick = async () => {

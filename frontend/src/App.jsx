@@ -15,15 +15,45 @@ import PacketFeed from './components/PacketFeed'
 import FlowsCard from './components/FlowsCard'
 import HistoryCard from './components/HistoryCard'
 import DemoControls from './components/DemoControls'
+import Sidebar from './components/Sidebar'
+import ReportsPage from './components/ReportsPage'
+import { postJSON } from './api'
+import { getJSON } from './api'
+import AuthScreen from './components/AuthScreen'
 
 export default function App() {
-  const { data, error } = usePolling('/api/dashboard', 1000)
+  const [authState, setAuthState] = React.useState({ loading: true, user: null, error: null })
+  const { data, error } = usePolling(authState.user ? '/api/dashboard' : null, 1000)
+  const [page, setPage] = React.useState('dashboard')
+  const [generating, setGenerating] = React.useState(false)
+  const [toast, setToast] = React.useState(null)
+  React.useEffect(() => {
+    getJSON('/api/auth/session')
+      .then(result => setAuthState({ loading: false, user: result.user, error: null }))
+      .catch(e => setAuthState({ loading: false, user: null, error: `Can’t reach the NetInsight backend (${e.message || e})` }))
+  }, [])
+  if (authState.loading) return <div className="auth-loading muted">Loading NetInsight…</div>
+  if (!authState.user) return <AuthScreen initialError={authState.error} onAuthenticated={user => setAuthState({ loading: false, user, error: null })} />
+  const logout = async () => {
+    try { await postJSON('/api/auth/logout') } finally {
+      setAuthState({ loading: false, user: null, error: null })
+      setPage('dashboard')
+    }
+  }
+  const generate = async () => {
+    setGenerating(true)
+    try { await postJSON('/api/reports'); setToast('Report generated successfully') }
+    catch (e) { setToast(`Could not generate report: ${e.message || e}`) }
+    finally { setGenerating(false); setTimeout(() => setToast(null), 3500) }
+  }
 
   return (
     <div className="page">
-      <Header meta={data && data.meta} totals={data && data.totals} error={error && !data ? error : null} />
+      <Sidebar page={page} onNavigate={setPage} user={authState.user} onLogout={logout} />
+      <div className="content">
+      <Header meta={data && data.meta} totals={data && data.totals} error={error && !data ? error : null} onGenerate={generate} generating={generating} />
 
-      {!data ? (
+      {page === 'reports' ? <ReportsPage /> : !data ? (
         <div className="loading">
           {error ? (
             <>
@@ -91,6 +121,8 @@ export default function App() {
           </footer>
         </main>
       )}
+      </div>
+      {toast && <div className={`toast ${toast.startsWith('Could') ? 'error' : ''}`}>{toast}</div>}
     </div>
   )
 }

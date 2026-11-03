@@ -1,7 +1,7 @@
 import React from 'react'
 import { fmtDuration } from '../format'
 
-export default function Header({ meta, totals, error }) {
+export default function Header({ meta, totals, error, onGenerate, generating }) {
   const live = meta && meta.mode === 'live'
   return (
     <header className="topbar">
@@ -15,6 +15,11 @@ export default function Header({ meta, totals, error }) {
           <h1>NetInsight</h1>
           <p className="muted small">Network intelligence dashboard</p>
         </div>
+      </div>
+      <div className="header-actions">
+        <button className="btn generate-btn" onClick={onGenerate} disabled={generating}>
+          {generating ? 'Generating…' : '＋ Generate Report'}
+        </button>
       </div>
       <div className="pills">
         {error ? (
