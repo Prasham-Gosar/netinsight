@@ -545,6 +545,16 @@ class Database:
                     FROM health_metrics WHERE timestamp >= ? GROUP BY b ORDER BY b""", (start,)).fetchall()
         return [dict(r) for r in rows]
 
+    def history_alerts(self, range_key, now, limit=50):
+        """Return persisted anomaly alerts across monitoring sessions."""
+        start = self._start_for(range_key, now)
+        with self._lock:
+            rows = self._conn.execute(
+                """SELECT timestamp, severity, metric, title, message, details, resolved_at
+                   FROM alerts WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?""",
+                (start, min(int(limit), 500))).fetchall()
+        return [dict(row) for row in rows]
+
     def history_answers(self, now):
         """Direct answers to the questions in the project brief."""
         start = self._start_for("today", now)

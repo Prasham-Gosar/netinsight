@@ -10,6 +10,9 @@ export default function Sidebar({ page, onNavigate, user, onLogout }) {
       <button className={`nav-item ${page === 'reports' ? 'active' : ''}`} onClick={() => onNavigate('reports')}>
         <span>▤</span> My Generated Reports
       </button>
+      <button className={`nav-item ${page === 'graph' ? 'active' : ''}`} onClick={() => onNavigate('graph')}>
+        <span>⌘</span> Network Knowledge Graph
+      </button>
       <div className="sidebar-account">
         <div className="muted small">Signed in as</div>
         <div className="account-name" title={user?.email}>{user?.email}</div>

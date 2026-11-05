@@ -44,6 +44,14 @@ export default function ReportsPage() {
               <div className="metric"><div><div className="muted small">Active devices</div><div className="metric-val">{snapshot.totals.active_devices ?? 0}</div></div></div></div>
             <div className="preview-columns"><div><h2>Top applications</h2><ul className="report-bullets">{snapshot.applications.map(a => <li key={a.name}><span>{a.name}</span><b>{a.bytes ?? 0} bytes</b></li>)}</ul></div>
               <div><h2>Anomalies & insights</h2><ul className="report-bullets">{[...(snapshot.anomalies || []).map(a => a.title || a.message), ...(snapshot.insights || [])].slice(0, 8).map((text, i) => <li key={i}>{typeof text === 'string' ? text : JSON.stringify(text)}</li>)}</ul></div></div>
+            {snapshot.historical && <div className="historical-report">
+              <h2>Historical context · last 30 days</h2>
+              <div className="metric-grid">
+                <div className="metric"><div><div className="muted small">Stored traffic</div><div className="metric-val">{snapshot.historical.summary.bytes_in + snapshot.historical.summary.bytes_out + snapshot.historical.summary.bytes_local} bytes</div></div></div>
+                <div className="metric"><div><div className="muted small">Stored health samples</div><div className="metric-val">{snapshot.historical.health.length}</div></div></div>
+                <div className="metric"><div><div className="muted small">Stored anomalies</div><div className="metric-val">{snapshot.historical.anomalies.length}</div></div></div>
+              </div>
+            </div>}
           </>}
         </section>
       </div>

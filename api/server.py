@@ -104,6 +104,68 @@ def create_app(engine, static_dir=None, simulator=None):
     def insights():
         return jsonify(engine.insights_view())
 
+    @app.get("/api/graph/topology")
+    def graph_topology():
+        """Return a bounded live topology snapshot for the knowledge graph."""
+        with engine.lock:
+            now = engine.now()
+            devices = engine.devices.snapshot(now)
+            remotes = engine.bandwidth.top_remotes(20)
+            flows = engine.flows.top_flows(40)
+            alerts = engine.alerts_view(30)
+            active_alerts = [a for a in alerts if not a.get("resolved")]
+            nodes = [{
+                "id": "gateway",
+                "label": engine.interface_label or "Gateway / Router",
+                "type": "gateway",
+                "ip": engine.ctx.gateway_ip,
+                "mac": None,
+                "bytes": sum(d["bytes_total"] for d in devices),
+                "packets": sum(d["packets"] for d in devices),
+                "status": "anomalous" if active_alerts else "normal",
+                "anomalies": len(active_alerts),
+            }]
+            for device in devices[:20]:
+                node_id = f"device:{device['key']}"
+                nodes.append({
+                    "id": node_id, "label": device["name"], "type": "device",
+                    "ip": device.get("ip"), "mac": device.get("mac"),
+                    "bytes": device["bytes_total"], "packets": device["packets"],
+                    "status": "normal", "active": device["active"],
+                    "vendor": device.get("vendor"), "anomalies": 0,
+                })
+            remote_ids = {}
+            for remote in remotes:
+                node_id = f"cloud:{remote['ip']}"
+                remote_ids[remote["ip"]] = node_id
+                label = remote.get("app") or remote.get("domain") or remote["ip"]
+                nodes.append({
+                    "id": node_id, "label": label, "type": "cloud",
+                    "ip": remote["ip"], "mac": None, "domain": remote.get("domain"),
+                    "application": remote.get("app"), "bytes": remote["bytes"],
+                    "packets": remote["packets"], "status": "anomalous" if active_alerts else "normal",
+                    "anomalies": len(active_alerts) if active_alerts else 0,
+                })
+            links = []
+            for flow in flows:
+                server_ip = flow["server"].rsplit(":", 1)[0]
+                client_ip = flow["client"].rsplit(":", 1)[0]
+                target = remote_ids.get(server_ip)
+                source = next((n["id"] for n in nodes if n.get("ip") == client_ip), "gateway")
+                if target:
+                    links.append({
+                        "source": source, "target": target, "bytes": flow["bytes"],
+                        "packets": flow["packets"], "app": flow["app"],
+                        "active": flow["state"] not in ("TIMEOUT", "RESET"),
+                        "anomalous": flow["state"] in ("TIMEOUT", "RESET") or bool(active_alerts),
+                    })
+            if not links:
+                links = [{"source": n["id"], "target": "gateway", "bytes": n["bytes"],
+                          "packets": n["packets"], "active": n.get("active", True),
+                          "anomalous": n["status"] == "anomalous"} for n in nodes[1:]]
+            return jsonify({"nodes": nodes, "links": links,
+                            "generated_at": now, "active_alerts": len(active_alerts)})
+
     # ---- history (from SQLite) ---------------------------------------------------
     def need_db():
         if not engine.db:
@@ -160,6 +222,14 @@ def create_app(engine, static_dir=None, simulator=None):
 
     def report_snapshot():
         data = engine.dashboard(bandwidth_seconds=120, packets=1, flows=1)
+        historical_now = engine.now()
+        historical = {
+            "range": "30d",
+            "summary": engine.db.history_summary("30d", historical_now),
+            "timeline": engine.db.history_timeline("hours", historical_now),
+            "health": engine.db.history_health("days", historical_now),
+            "anomalies": engine.db.history_alerts("30d", historical_now),
+        }
         return {
             "health": data["health"],
             "traffic": data["rate"],
@@ -167,6 +237,7 @@ def create_app(engine, static_dir=None, simulator=None):
             "applications": data["applications"][:10],
             "anomalies": data["alerts"][:10],
             "insights": data["insights"][:10],
+            "historical": historical,
             "generated_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
         }
 

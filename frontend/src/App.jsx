@@ -20,6 +20,7 @@ import ReportsPage from './components/ReportsPage'
 import { postJSON } from './api'
 import { getJSON } from './api'
 import AuthScreen from './components/AuthScreen'
+const KnowledgeGraph = React.lazy(() => import('./components/KnowledgeGraph'))
 
 export default function App() {
   const [authState, setAuthState] = React.useState({ loading: true, user: null, error: null })
@@ -53,7 +54,7 @@ export default function App() {
       <div className="content">
       <Header meta={data && data.meta} totals={data && data.totals} error={error && !data ? error : null} onGenerate={generate} generating={generating} />
 
-      {page === 'reports' ? <ReportsPage /> : !data ? (
+      {page === 'reports' ? <ReportsPage /> : page === 'graph' ? <React.Suspense fallback={<div className="loading"><p className="muted">Loading network graph…</p></div>}><KnowledgeGraph /></React.Suspense> : !data ? (
         <div className="loading">
           {error ? (
             <>
