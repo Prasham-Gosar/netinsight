@@ -102,17 +102,20 @@ code { background: var(--surface2); padding: 2px 6px; border-radius: 5px; }
 .gauge-score { font-size: 44px; font-weight: 700; }
 .gauge-sub { fill: var(--muted); font-size: 11px; }
 .gauge-status { font-weight: 600; margin-top: -6px; }
-.metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 10px; }
-.metric { display: flex; gap: 8px; align-items: flex-start; background: var(--surface2); border-radius: 10px; padding: 8px 10px; }
-.metric-val { font-weight: 600; }
+.health-card { min-width: 0; overflow: hidden; }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0 10px; min-width: 0; }
+.metric { display: flex; gap: 8px; align-items: flex-start; min-width: 0; overflow: hidden; background: var(--surface2); border-radius: 10px; padding: 8px 10px; }
+.metric > div { min-width: 0; }
+.metric-val { font-weight: 600; overflow-wrap: anywhere; }
 .sev { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; background: #475073; }
 .sev.ok { background: var(--green); } .sev.mid { background: var(--amber); } .sev.bad { background: var(--red); }
-.issues { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; }
+.issues { display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px; min-width: 0; }
 .chip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--surface2); }
 .chip.warn { color: var(--amber); }
 .how { margin-top: 10px; }
 .how summary { cursor: pointer; color: var(--muted); font-size: 12px; }
-table.mini { width: 100%; font-size: 12px; margin-top: 6px; }
+table.mini { width: 100%; max-width: 100%; table-layout: fixed; font-size: 12px; margin-top: 6px; }
+.health-card .how { min-width: 0; overflow-x: auto; }
 
 /* kpis */
 .kpis { display: grid; gap: 12px; height: 100%; }

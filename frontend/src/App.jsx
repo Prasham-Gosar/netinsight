@@ -6,6 +6,7 @@ import BandwidthCard from './components/BandwidthCard'
 import Kpis from './components/Kpis'
 import ProtocolCard from './components/ProtocolCard'
 import ApplicationsCard from './components/ApplicationsCard'
+import DevicesCard from './components/DevicesCard'
 import TimelineCard from './components/TimelineCard'
 import AlertsCard from './components/AlertsCard'
 import InsightsCard from './components/InsightsCard'
@@ -84,6 +85,9 @@ export default function App() {
             </div>
             <div className="span-4">
               <ApplicationsCard apps={data.applications} />
+            </div>
+            <div className="span-4">
+              <DevicesCard devices={data.devices} totals={data.totals} />
             </div>
             <div className="span-7">
               <TimelineCard />

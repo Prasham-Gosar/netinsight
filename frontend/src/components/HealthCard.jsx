@@ -24,7 +24,7 @@ export default function HealthCard({ health }) {
   const comps = shown.map((k) => health.components.find((c) => c.key === k)).filter(Boolean)
 
   return (
-    <Card title="Network Health" subtitle={`Based on the last ${health.window_s}s of measured traffic`}>
+    <Card className="health-card" title="Network Health" subtitle={`Based on the last ${health.window_s}s of measured traffic`}>
       <div className="gauge-wrap">
         <svg viewBox="0 0 220 125" className="gauge" role="img" aria-label={`Network health ${score ?? 'unknown'} out of 100`}>
           <path d="M 20 110 A 90 90 0 0 1 200 110" className="gauge-track" />
