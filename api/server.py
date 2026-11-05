@@ -109,11 +109,17 @@ def create_app(engine, static_dir=None, simulator=None):
         """Return a bounded live topology snapshot for the knowledge graph."""
         with engine.lock:
             now = engine.now()
-            devices = engine.devices.snapshot(now)
-            remotes = engine.bandwidth.top_remotes(20)
-            flows = engine.flows.top_flows(40)
+            devices = [d for d in engine.devices.snapshot(now) if not d["is_gateway"]][:5]
+            remotes = engine.bandwidth.top_remotes(8)
+            flows = engine.flows.top_flows(24)
             alerts = engine.alerts_view(30)
             active_alerts = [a for a in alerts if not a.get("resolved")]
+            anomalous_ips = {
+                endpoint.rsplit(":", 1)[0]
+                for flow in flows
+                if flow["state"] in ("TIMEOUT", "RESET")
+                for endpoint in (flow["client"], flow["server"])
+            }
             nodes = [{
                 "id": "gateway",
                 "label": engine.interface_label or "Gateway / Router",
@@ -124,6 +130,8 @@ def create_app(engine, static_dir=None, simulator=None):
                 "packets": sum(d["packets"] for d in devices),
                 "status": "anomalous" if active_alerts else "normal",
                 "anomalies": len(active_alerts),
+                "health_status": "Anomalous" if active_alerts else "Normal",
+                "fx": 0, "fy": 0, "fz": 0,
             }]
             for device in devices[:20]:
                 node_id = f"device:{device['key']}"
@@ -133,6 +141,7 @@ def create_app(engine, static_dir=None, simulator=None):
                     "bytes": device["bytes_total"], "packets": device["packets"],
                     "status": "normal", "active": device["active"],
                     "vendor": device.get("vendor"), "anomalies": 0,
+                    "health_status": "Normal" if device["active"] else "Idle",
                 })
             remote_ids = {}
             for remote in remotes:
@@ -143,8 +152,9 @@ def create_app(engine, static_dir=None, simulator=None):
                     "id": node_id, "label": label, "type": "cloud",
                     "ip": remote["ip"], "mac": None, "domain": remote.get("domain"),
                     "application": remote.get("app"), "bytes": remote["bytes"],
-                    "packets": remote["packets"], "status": "anomalous" if active_alerts else "normal",
-                    "anomalies": len(active_alerts) if active_alerts else 0,
+                    "packets": remote["packets"],                     "status": "anomalous" if remote["ip"] in anomalous_ips else "normal",
+                    "anomalies": 1 if remote["ip"] in anomalous_ips else 0,
+                    "health_status": "Anomalous" if remote["ip"] in anomalous_ips else "Normal",
                 })
             links = []
             for flow in flows:

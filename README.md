@@ -84,8 +84,9 @@ Accounts and reports: `POST /api/auth/signup`, `POST /api/auth/login`, `POST /ap
 `GET /api/auth/session`, `POST /api/reports`, `GET /api/reports`, `GET /api/reports/{id}`,
 and `GET /api/reports/{id}/pdf`. The dashboard requires a signed-in session; generated reports
 are stored per user in SQLite and can be previewed from **My Generated Reports**.
-Live topology: `GET /api/graph/topology` returns bounded device, gateway, external-service,
-and active-flow nodes/links for the Network Knowledge Graph view.
+Live topology: `GET /api/graph/topology` returns a bounded device, gateway, external-service,
+and active-flow graph for the Network Knowledge Graph view: one gateway, up to five local
+devices, and up to eight highest-volume external services.
 Simulation only: `POST /api/demo/{dns_burst|degradation|bandwidth_spike|scan}?duration=30`.
 
 ## Working on the dashboard (teammates)

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph3D from 'react-force-graph-3d'
 import { getJSON } from '../api'
 
-const COLORS = { gateway: '#4cc9f0', device: '#3ddc97', cloud: '#b388ff', anomalous: '#ff5c7a' }
+const COLORS = { gateway: '#4cc9f0', device: '#5aa9ff', cloud: '#b388ff', anomalous: '#ff5c7a' }
 
 export default function KnowledgeGraph() {
   const [graph, setGraph] = useState({ nodes: [], links: [] })
@@ -40,15 +40,17 @@ export default function KnowledgeGraph() {
             nodeLabel={node => `${node.label}${node.ip ? ` · ${node.ip}` : ''}`}
             nodeVal={nodeSize}
             nodeColor={nodeColor}
+            nodeOpacity={0.95}
             linkColor={link => link.anomalous ? '#ff5c7a' : '#42527f'}
-            linkWidth={link => link.active ? 1.8 : 0.8}
-            linkDirectionalParticles={link => link.active ? 2 : 0}
-            linkDirectionalParticleSpeed={link => link.active ? 0.008 : 0}
+            linkWidth={link => link.active ? 1.5 : 0.6}
+            linkDirectionalParticles={link => link.active ? 1 : 0}
+            linkDirectionalParticleSpeed={link => link.active ? 0.004 : 0}
             linkDirectionalParticleWidth={1.6}
             onNodeClick={node => { setSelected(node); graphRef.current?.cameraPosition({ x: 0, y: 0, z: 180 }, node, 700) }}
-            cooldownTicks={80}
-            d3AlphaDecay={0.04}
-            d3VelocityDecay={0.3}
+            warmupTicks={40}
+            cooldownTicks={60}
+            d3AlphaDecay={0.08}
+            d3VelocityDecay={0.45}
             showNavInfo={false}
           />}
           {!graph.nodes.length && !error && <div className="graph-empty muted">Waiting for live network activity…</div>}
