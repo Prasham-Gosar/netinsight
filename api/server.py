@@ -13,10 +13,20 @@ never touches packets itself.
 """
 
 import os
+from io import BytesIO
 from datetime import datetime
+from xml.sax.saxutils import escape
 from flask import session
 
 from flask import Flask, abort, jsonify, request, send_from_directory, make_response
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import (
+    Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+)
 
 DEMO_KINDS = {"dns_burst": 30, "degradation": 45, "bandwidth_spike": 25, "scan": 20}
 
@@ -34,6 +44,23 @@ def _int(name, default, lo, hi):
         return max(lo, min(hi, int(request.args.get(name, default))))
     except (TypeError, ValueError):
         return default
+
+
+def _report_table(rows):
+    table = Table(rows, colWidths=[4.7 * inch, 1.4 * inch], repeatRows=1, hAlign="LEFT")
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dce8f2")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#15324b")),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#b7c8d6")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f5f8fa")]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 7),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    return table
 
 
 def create_app(engine, static_dir=None, simulator=None):
@@ -277,34 +304,89 @@ def create_app(engine, static_dir=None, simulator=None):
         if not report:
             abort(404, description="Report not found")
         snapshot = report["snapshot"]
-        lines = [
-            "NetInsight Network Report", f"Report: {report['report_id']}",
-            f"Generated: {report['generated_at']}",
-            f"Health score: {snapshot.get('health', {}).get('score', 'N/A')}",
-            f"Traffic in/out: {snapshot.get('traffic', {}).get('in_bps', 0)} / "
-            f"{snapshot.get('traffic', {}).get('out_bps', 0)} bps",
-            "", "Applications:",
-        ] + [f"- {a.get('name', 'Unknown')}: {a.get('bytes', 0)} bytes" for a in snapshot.get("applications", [])]
-        text = "\\n".join(lines).replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-        stream = f"BT /F1 11 Tf 50 760 Td ({text.replace(chr(10), ') Tj 0 -16 Td (')}) Tj ET"
-        objects = [
-            "<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            f"<< /Length {len(stream.encode('latin-1'))} >>\\nstream\\n{stream}\\nendstream",
+        def text(value, default="—"):
+            return escape(str(default if value is None else value))
+
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name="ReportTitle", parent=styles["Title"], alignment=TA_CENTER,
+                                  textColor=colors.HexColor("#15324b"), spaceAfter=12))
+        styles.add(ParagraphStyle(name="SectionTitle", parent=styles["Heading2"], textColor=colors.HexColor("#15324b"),
+                                  spaceBefore=10, spaceAfter=7))
+        styles.add(ParagraphStyle(name="BodySafe", parent=styles["BodyText"], leading=14, spaceAfter=5))
+        styles.add(ParagraphStyle(name="Warning", parent=styles["BodyText"], textColor=colors.HexColor("#9a5b00"),
+                                  leading=14, spaceAfter=5))
+        styles.add(ParagraphStyle(name="Critical", parent=styles["BodyText"], textColor=colors.HexColor("#a52222"),
+                                  leading=14, spaceAfter=5))
+
+        story = [
+            Paragraph("NetInsight Network Report", styles["ReportTitle"]),
+            Paragraph(f"<b>Report:</b> {text(report.get('report_id'))}", styles["BodySafe"]),
+            Paragraph(f"<b>Generated:</b> {text(report.get('generated_at'))}", styles["BodySafe"]),
+            Spacer(1, 0.12 * inch),
+            Paragraph("Network summary", styles["SectionTitle"]),
         ]
-        pdf = "%PDF-1.4\\n"
-        offsets = [0]
-        for i, obj in enumerate(objects, 1):
-            offsets.append(len(pdf.encode("latin-1")))
-            pdf += f"{i} 0 obj\\n{obj}\\nendobj\\n"
-        xref = len(pdf.encode("latin-1"))
-        pdf += f"xref\\n0 {len(objects) + 1}\\n0000000000 65535 f \\n"
-        pdf += "".join(f"{offset:010d} 00000 n \\n" for offset in offsets[1:])
-        pdf += f"trailer\\n<< /Size {len(objects) + 1} /Root 1 0 R >>\\nstartxref\\n{xref}\\n%%EOF"
-        response = make_response(pdf.encode("latin-1"))
+        health = snapshot.get("health") or {}
+        traffic = snapshot.get("traffic") or {}
+        story.extend([
+            Paragraph(f"<b>Health score:</b> {text(health.get('score'), 'N/A')} "
+                      f"({text(health.get('status'), 'Unknown')})", styles["BodySafe"]),
+            Paragraph(f"<b>Traffic in/out:</b> {text(traffic.get('in_bps'), 0)} / "
+                      f"{text(traffic.get('out_bps'), 0)} bps", styles["BodySafe"]),
+        ])
+
+        applications = snapshot.get("applications") or []
+        story.extend([Spacer(1, 0.08 * inch), Paragraph("Top applications", styles["SectionTitle"])])
+        app_rows = [["Application", "Traffic"]]
+        app_rows.extend([[text(app.get("name"), "Unknown"), f"{text(app.get('bytes'), 0)} bytes"]
+                         for app in applications])
+        if len(app_rows) == 1:
+            app_rows.append(["No application data", "—"])
+        story.append(_report_table(app_rows))
+
+        story.extend([Spacer(1, 0.14 * inch), Paragraph("Anomalies & insights", styles["SectionTitle"])])
+        anomalies = snapshot.get("anomalies") or []
+        insights = snapshot.get("insights") or []
+        if not anomalies and not insights:
+            story.append(Paragraph("No anomalies or insights were recorded for this snapshot.", styles["BodySafe"]))
+        for anomaly in anomalies:
+            if isinstance(anomaly, dict):
+                severity = str(anomaly.get("severity") or anomaly.get("level") or "warning").upper()
+                title = text(anomaly.get("title"), "Anomaly")
+                description = text(anomaly.get("message") or anomaly.get("text"), "No description available.")
+            else:
+                severity, title, description = "WARNING", "Anomaly", text(anomaly)
+            style = styles["Critical"] if severity == "CRITICAL" else styles["Warning"]
+            story.append(Paragraph(f"<b>{title}</b> · <b>{text(severity)}</b><br/>{description}", style))
+        for insight in insights:
+            if isinstance(insight, dict):
+                title = text(insight.get("title"), "Insight")
+                description = text(insight.get("text") or insight.get("message"), "No description available.")
+                level = text(insight.get("level"), "info").upper()
+                story.append(Paragraph(f"<b>{title}</b> · <b>{level}</b><br/>{description}", styles["BodySafe"]))
+            else:
+                story.append(Paragraph(f"<b>Insight</b><br/>{text(insight)}", styles["BodySafe"]))
+
+        historical = snapshot.get("historical") or {}
+        summary = historical.get("summary") or {}
+        historical_anomalies = historical.get("anomalies") or []
+        historical_health = historical.get("health") or []
+        stored_traffic = sum((summary.get(key) or 0) for key in ("bytes_in", "bytes_out", "bytes_local"))
+        story.extend([Spacer(1, 0.14 * inch), Paragraph("Historical context · last 30 days", styles["SectionTitle"])])
+        history_rows = [
+            ["Stored metric", "Value"],
+            ["Stored traffic", f"{text(stored_traffic, 0)} bytes"],
+            ["Stored health samples", text(len(historical_health), 0)],
+            ["Stored historical anomalies", text(len(historical_anomalies), 0)],
+        ]
+        story.append(_report_table(history_rows))
+
+        buffer = BytesIO()
+        document = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=0.65 * inch,
+                                     leftMargin=0.65 * inch, topMargin=0.6 * inch, bottomMargin=0.6 * inch)
+        document.build(story)
+        response = make_response(buffer.getvalue())
         response.headers["Content-Type"] = "application/pdf"
-        response.headers["Content-Disposition"] = f"attachment; filename={report['report_id']}.pdf"
+        response.headers["Content-Disposition"] = 'attachment; filename="report.pdf"'
         return response
 
     @app.get("/api/history/summary")

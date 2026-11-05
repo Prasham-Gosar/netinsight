@@ -6,13 +6,11 @@ import BandwidthCard from './components/BandwidthCard'
 import Kpis from './components/Kpis'
 import ProtocolCard from './components/ProtocolCard'
 import ApplicationsCard from './components/ApplicationsCard'
-import DevicesCard from './components/DevicesCard'
 import TimelineCard from './components/TimelineCard'
 import AlertsCard from './components/AlertsCard'
 import InsightsCard from './components/InsightsCard'
 import TopIpsCard from './components/TopIpsCard'
-import PacketFeed from './components/PacketFeed'
-import FlowsCard from './components/FlowsCard'
+import PacketFeedPage from './components/PacketFeedPage'
 import HistoryCard from './components/HistoryCard'
 import DemoControls from './components/DemoControls'
 import Sidebar from './components/Sidebar'
@@ -54,7 +52,7 @@ export default function App() {
       <div className="content">
       <Header meta={data && data.meta} totals={data && data.totals} error={error && !data ? error : null} onGenerate={generate} generating={generating} />
 
-      {page === 'reports' ? <ReportsPage /> : page === 'graph' ? <React.Suspense fallback={<div className="loading"><p className="muted">Loading network graph…</p></div>}><KnowledgeGraph /></React.Suspense> : !data ? (
+      {page === 'reports' ? <ReportsPage /> : page === 'packets' ? <PacketFeedPage data={data} error={error} /> : page === 'graph' ? <React.Suspense fallback={<div className="loading"><p className="muted">Loading network graph…</p></div>}><KnowledgeGraph devices={data?.devices} totals={data?.totals} /></React.Suspense> : !data ? (
         <div className="loading">
           {error ? (
             <>
@@ -87,10 +85,6 @@ export default function App() {
             <div className="span-4">
               <ApplicationsCard apps={data.applications} />
             </div>
-            <div className="span-4">
-              <DevicesCard devices={data.devices} totals={data.totals} />
-            </div>
-
             <div className="span-7">
               <TimelineCard />
             </div>
@@ -105,12 +99,6 @@ export default function App() {
               <TopIpsCard ips={data.top_ips} />
             </div>
 
-            <div className="span-12">
-              <PacketFeed packets={data.packets} />
-            </div>
-            <div className="span-12">
-              <FlowsCard flows={data.flows} />
-            </div>
             <div className="span-12">
               <HistoryCard />
             </div>

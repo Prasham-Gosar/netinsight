@@ -2,11 +2,11 @@ import React from 'react'
 import Card from './Card'
 import { fmtBytes } from '../format'
 
-export default function DevicesCard({ devices, totals }) {
+export default function DevicesCard({ devices, totals, title = 'Devices' }) {
   const connected = totals?.devices ?? devices.length
   const active = totals?.active_devices ?? devices.filter((device) => device.active).length
   return (
-    <Card title="Devices" subtitle={`${connected} connected · ${active} active now · discovered via ARP & observed traffic`}>
+    <Card title={title} subtitle={`${connected} connected · ${active} active now · discovered via ARP & observed traffic`}>
       <div className="scroll">
         <table>
           <thead>

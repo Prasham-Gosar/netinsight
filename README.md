@@ -87,6 +87,10 @@ are stored per user in SQLite and can be previewed from **My Generated Reports**
 Live topology: `GET /api/graph/topology` returns a bounded device, gateway, external-service,
 and active-flow graph for the Network Knowledge Graph view: one gateway, up to five local
 devices, and up to eight highest-volume external services.
+The frontend sidebar keeps the 3D graph and its **Devices in Network** table together, while
+**Packet Feed** is a dedicated live-telemetry view containing the packet stream above the
+Active Flows table. **Dashboard** retains the summary cards and historical widgets, and
+**My Generated Reports** retains report history and preview.
 Simulation only: `POST /api/demo/{dns_burst|degradation|bandwidth_spike|scan}?duration=30`.
 
 ## Working on the dashboard (teammates)

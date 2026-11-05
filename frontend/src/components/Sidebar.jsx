@@ -7,11 +7,14 @@ export default function Sidebar({ page, onNavigate, user, onLogout }) {
       <button className={`nav-item ${page === 'dashboard' ? 'active' : ''}`} onClick={() => onNavigate('dashboard')}>
         <span>▦</span> Dashboard
       </button>
-      <button className={`nav-item ${page === 'reports' ? 'active' : ''}`} onClick={() => onNavigate('reports')}>
-        <span>▤</span> My Generated Reports
-      </button>
       <button className={`nav-item ${page === 'graph' ? 'active' : ''}`} onClick={() => onNavigate('graph')}>
         <span>⌘</span> Network Knowledge Graph
+      </button>
+      <button className={`nav-item ${page === 'packets' ? 'active' : ''}`} onClick={() => onNavigate('packets')}>
+        <span>≋</span> Packet Feed
+      </button>
+      <button className={`nav-item ${page === 'reports' ? 'active' : ''}`} onClick={() => onNavigate('reports')}>
+        <span>▤</span> My Generated Reports
       </button>
       <div className="sidebar-account">
         <div className="muted small">Signed in as</div>

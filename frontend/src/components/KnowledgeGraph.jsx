@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import ForceGraph3D from 'react-force-graph-3d'
 import * as THREE from 'three'
 import { getJSON } from '../api'
+import DevicesCard from './DevicesCard'
 
 const COLORS = { gateway: '#36e0ff', device: '#4f9dff', cloud: '#bd6cff', anomalous: '#ff426d' }
 const COLOR_VALUES = { gateway: 0x36e0ff, device: 0x4f9dff, cloud: 0xbd6cff, anomalous: 0xff426d }
@@ -43,7 +44,7 @@ function createNodeObject(node, radius) {
   return group
 }
 
-export default function KnowledgeGraph() {
+export default function KnowledgeGraph({ devices = [], totals }) {
   const [graph, setGraph] = useState({ nodes: [], links: [] })
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState(null)
@@ -133,6 +134,9 @@ export default function KnowledgeGraph() {
             <dl className="inspector-details"><dt>IP address</dt><dd>{selected.ip || '—'}</dd><dt>MAC address</dt><dd>{selected.mac || '—'}</dd><dt>Application</dt><dd>{selected.application || selected.domain || '—'}</dd><dt>Traffic volume</dt><dd>{selected.bytes || 0} bytes</dd><dt>Packets</dt><dd>{selected.packets || 0}</dd><dt>Anomalies</dt><dd>{selected.anomalies || 0}</dd></dl>
           </> : <div className="empty muted">Click a node to inspect its telemetry.</div>}
         </aside>
+      </section>
+      <section className="graph-devices">
+        <DevicesCard title="Devices in Network" devices={devices} totals={totals} />
       </section>
     </main>
   )

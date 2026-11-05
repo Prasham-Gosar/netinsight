@@ -24,6 +24,7 @@ describe('NetInsight dashboard', () => {
       if (url.includes('/api/dashboard')) return ok(dashboard)
       if (url.includes('/api/history/timeline')) return ok(timeline)
       if (url.includes('/api/history/answers')) return ok(answers)
+      if (url.includes('/api/graph/topology')) return ok({ nodes: [], links: [] })
       return { ok: false, status: 404, statusText: 'Not Found', json: async () => ({}) }
     })
   })
@@ -31,10 +32,12 @@ describe('NetInsight dashboard', () => {
   it('renders every section from real backend data', async () => {
     render(<App />)
     expect(await screen.findByText('Network Health')).toBeTruthy()
-    for (const title of ['Live Bandwidth', 'Protocol Distribution', 'Top Applications', 'Devices', 'Traffic Timeline',
-      'Anomaly Alerts', 'Insights', 'Top Destinations', 'Live Packet Feed', 'Active Flows', 'Ask Your Network']) {
+    for (const title of ['Live Bandwidth', 'Protocol Distribution', 'Top Applications', 'Traffic Timeline',
+      'Anomaly Alerts', 'Insights', 'Top Destinations', 'Ask Your Network']) {
       expect(screen.getAllByText(title).length).toBeGreaterThan(0)
     }
+    expect(screen.getByRole('button', { name: /Network Knowledge Graph/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Packet Feed/ })).toBeTruthy()
   })
 
   it('shows detected applications, the health status and the demo controls', async () => {
@@ -50,12 +53,16 @@ describe('NetInsight dashboard', () => {
     await screen.findByText('Network Health')
     expect(screen.getAllByText(dashboard.alerts[0].title).length).toBeGreaterThan(0)
     expect(screen.getAllByText(dashboard.alerts[0].message).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: /Packet Feed/ }))
+    await screen.findByText('Live Packet Feed')
     expect(screen.getAllByText(dashboard.packets[0].explanation).length).toBeGreaterThan(0)
   })
 
   it('opens and closes the detailed packet inspector', async () => {
     render(<App />)
     await screen.findByText('Network Health')
+    fireEvent.click(screen.getByRole('button', { name: /Packet Feed/ }))
+    await screen.findByText('Live Packet Feed')
     fireEvent.click(screen.getByRole('button', { name: `Inspect packet ${dashboard.packets[0].n}` }))
 
     expect(screen.getByRole('dialog')).toBeTruthy()
